@@ -23,50 +23,66 @@ fn parse_input() -> Vec<usize> {
     numbers
 }
 
-fn find_sum_pair(numbers: &Vec<usize>) -> Option<(usize, usize)> {
-    use std::collections::HashSet;
-    let mut number_set: HashSet<usize> = HashSet::new();
-    for number in numbers {
-        number_set.insert(*number);
-    }
-    for number in number_set.iter() {
-        let inverse = 2020 - number;
-        if number_set.contains(&inverse) {
-            return Some((*number, inverse));
-        }
-    }
-    None
-}
-#[test]
-fn find_sum_pair_test() {
-    let output = find_sum_pair(&vec![1721, 979, 366, 299, 675, 1456]);
-    assert_eq!(output, Some((1721, 299)));
-}
-
-fn find_sum_trio(numbers: &Vec<usize>) -> Option<(usize, usize, usize)> {
-    for i in 0..numbers.len() {
-        for j in (i + 1)..numbers.len() {
-            for k in (j + 1)..numbers.len() {
-                if numbers[i] + numbers[j] + numbers[k] == 2020 {
-                    return Some((numbers[i], numbers[j], numbers[k]));
-                }
+fn find_sum<T>(numbers: &[T], sum: T, n: usize) -> Option<Vec<T>>
+where
+    T: std::ops::Add<Output = T> + std::ops::Sub<Output = T> + PartialEq + PartialOrd + Copy,
+{
+    match n {
+        0 => Some(vec![]),
+        1 => {
+            if numbers.contains(&sum) {
+                Some(vec![sum])
+            } else {
+                None
             }
         }
+        _ => {
+
+            for i in 0..numbers.len() {
+                if numbers[i] < sum {
+                    let attempt = find_sum(&numbers[i + 1..], sum - numbers[i], n - 1);
+                    if let Some(mut v) = attempt {
+                        v.push(numbers[i]);
+                        return Some(v);
+                    }
+                }
+            }
+            None
+        }
     }
-    None
+}
+
+#[test]
+fn find_sum_pair_test() {
+    let output = find_sum(&vec![1721, 979, 366, 299, 675, 1456], 2020, 2);
+    assert_eq!(output, Some(vec![299, 1721]));
 }
 
 #[test]
 fn find_sum_trio_test() {
-    let output = find_sum_trio(&vec![1721, 979, 366, 299, 675, 1456]);
-    assert_eq!(output, Some((979, 366, 675)));
+    let output = find_sum(&vec![1721, 979, 366, 299, 675, 1456], 2020, 3);
+    assert_eq!(output, Some(vec![675, 366, 979]));
 }
 
 fn main() {
     let numbers = parse_input();
-    let (a, b) = find_sum_pair(&numbers).unwrap();
-    println!("{} x {} = {}", a, b, a * b);
+    let output = find_sum(&numbers, 2020, 2).unwrap();
+    assert_eq!(output.len(), 2);
+    println!(
+        "{} = {}",
+        &output
+            .iter()
+            .fold(String::new(), |a, b| format!("{} x {}", a, b))[3..],
+        output.iter().fold(1, |a, b| a * b)
+    );
 
-    let (a, b, c) = find_sum_trio(&numbers).unwrap();
-    println!("{} x {} x {} = {}", a, b, c, a * b * c);
+    let output = find_sum(&numbers, 2020, 3).unwrap();
+    assert_eq!(output.len(), 3);
+    println!(
+        "{} = {}",
+        &output
+            .iter()
+            .fold(String::new(), |a, b| format!("{} x {}", a, b))[3..],
+        output.iter().fold(1, |a, b| a * b)
+    );
 }
