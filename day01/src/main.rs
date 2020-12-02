@@ -1,25 +1,29 @@
+use nom::{
+    character::complete::{digit1, newline},
+    combinator::map_res,
+    multi::many1,
+    IResult,
+};
+
+fn parse_number(input: &str) -> IResult<&str, usize> {
+    use std::str::FromStr;
+
+    let (input, n) = map_res(digit1, usize::from_str)(input)?;
+    let (input, _) = newline(input)?;
+
+    Ok((input, n))
+}
+
 fn parse_input() -> Vec<usize> {
     use std::fs::File;
     use std::io::prelude::*;
-    use std::io::BufReader;
-    use std::str::FromStr;
 
-    let file = File::open("input.txt").expect("could not open file");
-    let mut buf_reader = BufReader::new(file);
+    let mut file = File::open("input.txt").expect("could not open file");
+    let mut input = String::new();
+    file.read_to_string(&mut input)
+        .expect("could not read file");
 
-    let mut numbers: Vec<usize> = vec![];
-    loop {
-        let mut line = String::new();
-        let len = buf_reader
-            .read_line(&mut line)
-            .expect("could not read line");
-        if len == 0 {
-            break;
-        }
-        let number = usize::from_str(line.trim_end()).expect(&format!("invalid input, {:?}", line));
-        numbers.push(number);
-    }
-
+    let (_, numbers) = many1(parse_number)(&input).expect("could not parse file");
     numbers
 }
 
@@ -37,7 +41,6 @@ where
             }
         }
         _ => {
-
             for i in 0..numbers.len() {
                 if numbers[i] < sum {
                     let attempt = find_sum(&numbers[i + 1..], sum - numbers[i], n - 1);

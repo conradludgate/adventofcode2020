@@ -1,8 +1,6 @@
 use nom::{
     bytes::complete::tag,
-    character::complete::alpha1,
-    character::complete::newline,
-    character::complete::{anychar, char, digit1},
+    character::complete::{alpha1, anychar, char, digit1, newline},
     combinator::map_res,
     multi::many1,
     IResult,
@@ -19,25 +17,6 @@ struct Policy {
 struct Record {
     policy: Policy,
     password: String,
-}
-
-impl Record {
-    fn is_valid_1(&self) -> bool {
-        let count = self
-            .password
-            .chars()
-            .filter(|&c| c == self.policy.c)
-            .count();
-        self.policy.min <= count && count <= self.policy.max
-    }
-
-    fn is_valid_2(&self) -> bool {
-        let mut chars = self.password.chars().skip(self.policy.min - 1);
-        let a = chars.next().unwrap();
-        let b = chars.skip(self.policy.max - self.policy.min - 1).next().unwrap();
-
-        (a == self.policy.c) ^ (b == self.policy.c)
-    }
 }
 
 fn read_policy(input: &str) -> IResult<&str, Policy> {
@@ -76,18 +55,44 @@ fn parse_file() -> Vec<Record> {
     use std::io::prelude::*;
 
     let mut file = File::open("input.txt").expect("could not open file");
-    let mut contents = String::new();
-    file.read_to_string(&mut contents)
+    let mut input = String::new();
+    file.read_to_string(&mut input)
         .expect("could not read file");
 
-    let (_, records) = read_records(&contents).expect("could not parse file");
+    let (_, records) = read_records(&input).expect("could not parse file");
 
     records
 }
 
+impl Record {
+    fn is_valid_1(&self) -> bool {
+        let count = self
+            .password
+            .chars()
+            .filter(|&c| c == self.policy.c)
+            .count();
+        self.policy.min <= count && count <= self.policy.max
+    }
+
+    fn is_valid_2(&self) -> bool {
+        let mut chars = self.password.chars().skip(self.policy.min - 1);
+        let a = chars.next().unwrap();
+        let b = chars
+            .skip(self.policy.max - self.policy.min - 1)
+            .next()
+            .unwrap();
+
+        (a == self.policy.c) ^ (b == self.policy.c)
+    }
+}
+
 fn main() {
     let records = parse_file();
-    let count = records.clone().into_iter().filter(Record::is_valid_1).count();
+    let count = records
+        .clone()
+        .into_iter()
+        .filter(Record::is_valid_1)
+        .count();
     println!("valid passwords: {}", count);
 
     let count = records.into_iter().filter(Record::is_valid_2).count();
