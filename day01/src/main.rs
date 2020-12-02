@@ -2,14 +2,12 @@ use nom::{
     character::complete::{digit1, newline},
     combinator::map_res,
     multi::many1,
+    sequence::tuple,
     IResult,
 };
 
 fn parse_number(input: &str) -> IResult<&str, usize> {
-    use std::str::FromStr;
-
-    let (input, n) = map_res(digit1, usize::from_str)(input)?;
-    let (input, _) = newline(input)?;
+    let (input, (n, _)) = tuple((map_res(digit1, |s: &str| s.parse::<usize>()), newline))(input)?;
 
     Ok((input, n))
 }

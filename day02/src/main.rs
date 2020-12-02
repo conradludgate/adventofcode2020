@@ -3,6 +3,7 @@ use nom::{
     character::complete::{alpha1, anychar, char, digit1, newline},
     combinator::map_res,
     multi::many1,
+    sequence::tuple,
     IResult,
 };
 
@@ -20,22 +21,24 @@ struct Record {
 }
 
 fn read_policy(input: &str) -> IResult<&str, Policy> {
-    use std::str::FromStr;
-
-    let (input, min) = map_res(digit1, usize::from_str)(input)?;
-    let (input, _) = char('-')(input)?;
-    let (input, max) = map_res(digit1, usize::from_str)(input)?;
-    let (input, _) = char(' ')(input)?;
-    let (input, c) = anychar(input)?;
+    let (input, (min, _, max, _, c)) = tuple((
+        map_res(digit1, |s: &str| s.parse::<usize>()),
+        char('-'),
+        map_res(digit1, |s: &str| s.parse::<usize>()),
+        char(' '),
+        anychar,
+    ))(input)?;
 
     Ok((input, Policy { min, max, c }))
 }
 
 fn read_record(input: &str) -> IResult<&str, Record> {
-    let (input, policy) = read_policy(input)?;
-    let (input, _) = tag(": ")(input)?;
-    let (input, password) = alpha1(input)?;
-    let (input, _) = newline(input)?;
+    let (input, (policy, _, password, _)) = tuple((
+        read_policy,
+        tag(": "),
+        alpha1,
+        newline,
+    ))(input)?;
 
     Ok((
         input,
