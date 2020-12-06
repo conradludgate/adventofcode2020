@@ -1,9 +1,9 @@
 use nom::{
     bytes::complete::tag,
-    character::complete::{alpha1, anychar, char, digit1, newline},
+    character::complete::{alpha1, anychar, char, digit1, line_ending},
     combinator::map_res,
-    multi::many1,
-    sequence::tuple,
+    multi::separated_list1,
+    sequence::separated_pair,
     IResult,
 };
 
@@ -15,45 +15,36 @@ struct Policy {
 }
 
 #[derive(Debug, Clone)]
-struct Record {
+struct Record<'a> {
     policy: Policy,
-    password: String,
+    password: &'a str,
 }
 
-fn read_policy(input: &str) -> IResult<&str, Policy> {
-    let (input, (min, _, max, _, c)) = tuple((
-        map_res(digit1, |s: &str| s.parse::<usize>()),
-        char('-'),
-        map_res(digit1, |s: &str| s.parse::<usize>()),
+fn parse_policy(input: &str) -> IResult<&str, Policy> {
+    let (input, ((min, max), c)) = separated_pair(
+        separated_pair(
+            map_res(digit1, |s: &str| s.parse::<usize>()),
+            char('-'),
+            map_res(digit1, |s: &str| s.parse::<usize>()),
+        ),
         char(' '),
         anychar,
-    ))(input)?;
+    )(input)?;
 
     Ok((input, Policy { min, max, c }))
 }
 
-fn read_record(input: &str) -> IResult<&str, Record> {
-    let (input, (policy, _, password, _)) = tuple((
-        read_policy,
-        tag(": "),
-        alpha1,
-        newline,
-    ))(input)?;
+fn parse_record(input: &str) -> IResult<&str, Record> {
+    let (input, (policy, password)) = separated_pair(parse_policy, tag(": "), alpha1)(input)?;
 
-    Ok((
-        input,
-        Record {
-            policy,
-            password: password.to_string(),
-        },
-    ))
+    Ok((input, Record { policy, password }))
 }
 
-fn read_records(input: &str) -> IResult<&str, Vec<Record>> {
-    many1(read_record)(input)
+fn parse_records(input: &str) -> IResult<&str, Vec<Record>> {
+    separated_list1(line_ending, parse_record)(input)
 }
 
-fn parse_file() -> Vec<Record> {
+fn read_file() -> String {
     use std::fs::File;
     use std::io::prelude::*;
 
@@ -61,13 +52,10 @@ fn parse_file() -> Vec<Record> {
     let mut input = String::new();
     file.read_to_string(&mut input)
         .expect("could not read file");
-
-    let (_, records) = read_records(&input).expect("could not parse file");
-
-    records
+    input
 }
 
-impl Record {
+impl<'a> Record<'a> {
     fn is_valid_1(&self) -> bool {
         let count = self
             .password
@@ -90,7 +78,8 @@ impl Record {
 }
 
 fn main() {
-    let records = parse_file();
+    let input = read_file();
+    let (_, records) = parse_records(&input).unwrap();
     let count = records
         .clone()
         .into_iter()

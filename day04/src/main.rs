@@ -3,8 +3,9 @@ use nom::{
     character::complete::{char, line_ending, one_of},
     complete,
     multi::count,
-    multi::{many0, many1},
+    multi::separated_list1,
     named,
+    sequence::separated_pair,
     tag, IResult, InputTakeAtPosition,
 };
 
@@ -43,10 +44,7 @@ pub fn parse_data(input: &str) -> IResult<&str, &str> {
 }
 
 fn parse_field_data(input: &str) -> IResult<&str, FieldData> {
-    let (input, field) = parse_field(input)?;
-    let (input, _) = char(':')(input)?;
-    let (input, data) = parse_data(input)?;
-    let (input, _) = one_of("\n\r\t ")(input)?;
+    let (input, (field, data)) = separated_pair(parse_field, char(':'), parse_data)(input)?;
     Ok((input, FieldData { field, data }))
 }
 
@@ -54,13 +52,12 @@ fn parse_field_data(input: &str) -> IResult<&str, FieldData> {
 struct Passport<'a>(Vec<FieldData<'a>>);
 
 fn parse_passport(input: &str) -> IResult<&str, Passport> {
-    let (input, fields) = many1(parse_field_data)(input)?;
-    let (input, _) = line_ending(input)?;
+    let (input, fields) = separated_list1(one_of("\n\r\t "), parse_field_data)(input)?;
     Ok((input, Passport(fields)))
 }
 
 fn parse_passports(input: &str) -> IResult<&str, Vec<Passport>> {
-    many0(parse_passport)(input)
+    separated_list1(count(line_ending, 2), parse_passport)(input)
 }
 
 fn read_file() -> String {
@@ -200,7 +197,7 @@ fn test_parse_field() {
 
 #[test]
 fn test_parse_field_data() {
-    let inputs = vec!["byr:1971 ", "hgt:170cm\n", "hcl:#ff0000 "];
+    let inputs = vec!["byr:1971", "hgt:170cm", "hcl:#ff0000"];
 
     for input in inputs.into_iter() {
         let (input, _) = parse_field_data(input).unwrap();
@@ -211,12 +208,10 @@ fn test_parse_field_data() {
 #[test]
 fn test_parse_passport() {
     let input = "iyr:2013 ecl:amb cid:350 eyr:2023 pid:028048884
-hcl:#cfa07d byr:1929
-
-";
+hcl:#cfa07d byr:1929";
     let (input, fields) = parse_passport(input).unwrap();
     assert_eq!(input.len(), 0);
-    assert_eq!(fields.0.len(), 6);
+    assert_eq!(fields.0.len(), 7);
 }
 
 #[test]
@@ -233,9 +228,7 @@ ecl:brn pid:760753108 byr:1931
 hgt:179cm
 
 hcl:#cfa07d eyr:2025 pid:166559648
-iyr:2011 ecl:brn hgt:59in
-
-";
+iyr:2011 ecl:brn hgt:59in";
 
     let (input, passports) = parse_passports(input).unwrap();
     assert_eq!(input.len(), 0);

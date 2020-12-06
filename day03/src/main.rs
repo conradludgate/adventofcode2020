@@ -1,8 +1,8 @@
 use nom::{
     branch::alt,
-    character::complete::{char, newline},
+    character::complete::{char, line_ending},
     multi::many1,
-    multi::many_till,
+    multi::separated_list1,
     IResult,
 };
 
@@ -27,12 +27,12 @@ struct Row(Vec<Spot>);
 struct Grid(Vec<Row>);
 
 fn parse_row(input: &str) -> IResult<&str, Row> {
-    let (input, (spots, _)) = many_till(parse_spot, newline)(input)?;
+    let (input, spots) = many1(parse_spot)(input)?;
     Ok((input, Row(spots)))
 }
 
 fn parse_rows(input: &str) -> IResult<&str, Grid> {
-    let (input, rows) = many1(parse_row)(input)?;
+    let (input, rows) = separated_list1(line_ending, parse_row)(input)?;
     Ok((input, Grid(rows)))
 }
 
@@ -97,8 +97,7 @@ fn test_iter() {
 .#........#
 #.##...#...
 #...##....#
-.#..#...#.#
-",
+.#..#...#.#",
     )
     .unwrap();
 
@@ -124,8 +123,7 @@ fn test_count() {
 .#........#
 #.##...#...
 #...##....#
-.#..#...#.#
-",
+.#..#...#.#",
     )
     .unwrap();
 
@@ -156,5 +154,8 @@ fn main() {
     println!("Trees Found (5, 1): {}", trees51);
     println!("Trees Found (7, 1): {}", trees71);
     println!("Trees Found (1, 2): {}", trees12);
-    println!("Trees Found Product: {}", trees11 * trees31 * trees51 * trees71 * trees12);
+    println!(
+        "Trees Found Product: {}",
+        trees11 * trees31 * trees51 * trees71 * trees12
+    );
 }

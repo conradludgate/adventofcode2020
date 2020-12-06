@@ -1,18 +1,19 @@
 use nom::{
-    character::complete::{digit1, newline},
+    character::complete::{digit1, line_ending},
     combinator::map_res,
-    multi::many1,
-    sequence::tuple,
+    multi::separated_list1,
     IResult,
 };
 
 fn parse_number(input: &str) -> IResult<&str, usize> {
-    let (input, (n, _)) = tuple((map_res(digit1, |s: &str| s.parse::<usize>()), newline))(input)?;
-
-    Ok((input, n))
+    map_res(digit1, |s: &str| s.parse::<usize>())(input)
 }
 
-fn parse_input() -> Vec<usize> {
+fn parse_numbers(input: &str) -> IResult<&str, Vec<usize>> {
+    separated_list1(line_ending, parse_number)(input)
+}
+
+fn read_file() -> String {
     use std::fs::File;
     use std::io::prelude::*;
 
@@ -20,9 +21,7 @@ fn parse_input() -> Vec<usize> {
     let mut input = String::new();
     file.read_to_string(&mut input)
         .expect("could not read file");
-
-    let (_, numbers) = many1(parse_number)(&input).expect("could not parse file");
-    numbers
+    input
 }
 
 fn find_sum<T>(numbers: &[T], sum: T, n: usize) -> Option<Vec<T>>
@@ -66,7 +65,8 @@ fn find_sum_trio_test() {
 }
 
 fn main() {
-    let numbers = parse_input();
+    let input = read_file();
+    let (_, numbers) = parse_numbers(&input).unwrap();
     let output = find_sum(&numbers, 2020, 2).unwrap();
     assert_eq!(output.len(), 2);
     println!(

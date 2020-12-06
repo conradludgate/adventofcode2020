@@ -1,4 +1,11 @@
-use nom::{IResult, alt, character::complete::line_ending, complete, multi::many1, multi::{count, separated_list1}, named, tag};
+use nom::{
+    alt,
+    character::complete::line_ending,
+    complete,
+    multi::many1,
+    multi::{count, separated_list1},
+    named, tag, IResult,
+};
 
 #[derive(Debug, Copy, Clone, PartialEq)]
 #[repr(u32)]
@@ -107,9 +114,9 @@ fn count_group_answers2(group_answers: &Vec<Vec<Answer>>) -> u32 {
 }
 
 fn count_all_group_answers2(all_group_answers: &Vec<Vec<Vec<Answer>>>) -> u32 {
-    all_group_answers
-        .iter()
-        .fold(0, |a, group_answers| a + count_group_answers2(group_answers))
+    all_group_answers.iter().fold(0, |a, group_answers| {
+        a + count_group_answers2(group_answers)
+    })
 }
 
 fn main() {
@@ -166,7 +173,6 @@ b";
     let count = count_all_group_answers(&all_group_answers);
     assert_eq!(count, 11);
 }
-
 
 #[test]
 fn test_count_group_answers2() {

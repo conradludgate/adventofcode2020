@@ -1,6 +1,6 @@
 use nom::{
-    alt, character::complete::line_ending, complete, multi::count, multi::many1, named, tag,
-    IResult,
+    alt, character::complete::line_ending, complete, multi::count, multi::separated_list1, named,
+    tag, IResult,
 };
 
 named!(parse_fb<&str, usize>, alt!(
@@ -27,12 +27,11 @@ fn parse_col(input: &str) -> IResult<&str, usize> {
 fn parse_seat(input: &str) -> IResult<&str, (usize, usize)> {
     let (input, row) = parse_row(input)?;
     let (input, col) = parse_col(input)?;
-    let (input, _) = line_ending(input)?;
     Ok((input, (row, col)))
 }
 
 fn parse_seats(input: &str) -> IResult<&str, Vec<(usize, usize)>> {
-    many1(parse_seat)(input)
+    separated_list1(line_ending, parse_seat)(input)
 }
 
 fn read_file() -> String {
@@ -54,18 +53,19 @@ fn main() {
     let input = read_file();
     let (_, seats) = parse_seats(&input).expect("could not parse file");
     let seat_ids: Vec<usize> = seats.into_iter().map(to_seat_id).collect();
-    let max_ids = seat_ids.iter().fold(0, |a, &id| a.max(id));
-    println!("max id: {}", max_ids);
+    let max_id = seat_ids.iter().fold(0, |a, &id| a.max(id));
+    let min_id = seat_ids.iter().fold(max_id, |a, &id| a.min(id));
+    println!("max id: {}", max_id);
 
     let mut seats: Vec<bool> = Vec::with_capacity(128 * 8);
-    seats.resize(128*8, false);
+    seats.resize(128 * 8, false);
 
     for seat_id in seat_ids {
         seats[seat_id] = true;
     }
 
     for (id, &seat) in seats.iter().enumerate() {
-        if !seat {
+        if !seat && (min_id..=max_id).contains(&id) {
             println!("empty id: {}", id);
         }
     }
@@ -106,22 +106,22 @@ fn test_parse_col() {
 
 #[test]
 fn test_parse_seat() {
-    let (input, seat) = parse_seat("BFFFBBFRRR\n").unwrap();
+    let (input, seat) = parse_seat("BFFFBBFRRR").unwrap();
     assert_eq!(input.len(), 0);
     assert_eq!(seat, (70, 7));
 
-    let (input, seat) = parse_seat("FFFBBBFRRR\n").unwrap();
+    let (input, seat) = parse_seat("FFFBBBFRRR").unwrap();
     assert_eq!(input.len(), 0);
     assert_eq!(seat, (14, 7));
 
-    let (input, seat) = parse_seat("BBFFBBFRLL\n").unwrap();
+    let (input, seat) = parse_seat("BBFFBBFRLL").unwrap();
     assert_eq!(input.len(), 0);
     assert_eq!(seat, (102, 4));
 }
 
 #[test]
 fn test_parse_seats() {
-    let (input, seats) = parse_seats("BFFFBBFRRR\nFFFBBBFRRR\nBBFFBBFRLL\n").unwrap();
+    let (input, seats) = parse_seats("BFFFBBFRRR\nFFFBBBFRRR\nBBFFBBFRLL").unwrap();
     assert_eq!(input.len(), 0);
     assert_eq!(seats, vec![(70, 7), (14, 7), (102, 4),]);
 }
