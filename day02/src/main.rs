@@ -20,13 +20,13 @@ struct Record<'a> {
     password: &'a str,
 }
 
+fn parse_number(input: &str) -> IResult<&str, usize> {
+    map_res(digit1, |s: &str| s.parse::<usize>())(input)
+}
+
 fn parse_policy(input: &str) -> IResult<&str, Policy> {
     let (input, ((min, max), c)) = separated_pair(
-        separated_pair(
-            map_res(digit1, |s: &str| s.parse::<usize>()),
-            char('-'),
-            map_res(digit1, |s: &str| s.parse::<usize>()),
-        ),
+        separated_pair(parse_number, char('-'), parse_number),
         char(' '),
         anychar,
     )(input)?;
