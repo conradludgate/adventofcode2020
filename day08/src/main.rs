@@ -22,21 +22,20 @@ fn parse_number(input: &str) -> IResult<&str, isize> {
     Ok((input, sign * abs))
 }
 
+fn parse_nop(input: &str) -> IResult<&str, Instruction> {
+    let (input, (_, value)) = separated_pair(tag("nop"), space1, parse_number)(input)?;
+    Ok((input, Instruction::Nop(value)))
+}
+fn parse_jmp(input: &str) -> IResult<&str, Instruction> {
+    let (input, (_, value)) = separated_pair(tag("jmp"), space1, parse_number)(input)?;
+    Ok((input, Instruction::Jmp(value)))
+}
+fn parse_acc(input: &str) -> IResult<&str, Instruction> {
+    let (input, (_, value)) = separated_pair(tag("acc"), space1, parse_number)(input)?;
+    Ok((input, Instruction::Acc(value)))
+}
 fn parse_instruction(input: &str) -> IResult<&str, Instruction> {
-    let (input, (instruction, value)) = separated_pair(
-        alt((tag("nop"), tag("acc"), tag("jmp"))),
-        space1,
-        parse_number,
-    )(input)?;
-
-    let instruction = match instruction {
-        "nop" => Instruction::Nop(value),
-        "acc" => Instruction::Acc(value),
-        "jmp" => Instruction::Jmp(value),
-        x => panic!(format!("invalid instruction recieved: {}", x)),
-    };
-
-    Ok((input, instruction))
+    alt((parse_nop, parse_jmp, parse_acc))(input)
 }
 
 fn parse_program(input: &str) -> IResult<&str, Vec<Instruction>> {
@@ -77,7 +76,7 @@ impl VM {
         }
     }
 
-    fn step(&mut self){
+    fn step(&mut self) {
         match self.instructions[self.ip as usize] {
             Instruction::Nop(_) => self.ip += 1,
             Instruction::Jmp(x) => self.ip += x,
@@ -95,7 +94,7 @@ impl VM {
             if self.history.insert(self.ip, self.step).is_some() {
                 return Err(self.acc);
             }
-    
+
             if self.ip as usize >= self.instructions.len() {
                 return Ok(self.acc);
             }
@@ -137,7 +136,7 @@ impl Iterator for InstructionIter {
 }
 
 fn fix_program(instructions: Vec<Instruction>) -> isize {
-    let iter = InstructionIter{
+    let iter = InstructionIter {
         instructions,
         ip: 0,
     };
@@ -180,19 +179,21 @@ jmp -4
 acc +6";
     let (input, instructions) = parse_program(input).unwrap();
     assert_eq!(input, "");
-    assert_eq!(instructions, vec![
-        Nop(0),
-        Acc(1),
-        Jmp(4),
-        Acc(3),
-        Jmp(-3),
-        Acc(-99),
-        Acc(1),
-        Jmp(-4),
-        Acc(6),
-    ])
+    assert_eq!(
+        instructions,
+        vec![
+            Nop(0),
+            Acc(1),
+            Jmp(4),
+            Acc(3),
+            Jmp(-3),
+            Acc(-99),
+            Acc(1),
+            Jmp(-4),
+            Acc(6),
+        ]
+    )
 }
-
 
 #[test]
 fn test_program_step() {
