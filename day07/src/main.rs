@@ -1,4 +1,3 @@
-use cached::proc_macro::cached;
 use nom::{
     branch::alt,
     bytes::complete::{tag, take_until},
