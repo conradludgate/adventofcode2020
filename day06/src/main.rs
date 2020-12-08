@@ -1,10 +1,9 @@
 use nom::{
-    alt,
-    character::complete::line_ending,
-    complete,
-    multi::many1,
-    multi::{count, separated_list1},
-    named, tag, IResult,
+    branch::alt,
+    character::complete::{char, line_ending},
+    combinator::value,
+    multi::{count, many1, separated_list1},
+    IResult,
 };
 
 #[derive(Debug, Copy, Clone, PartialEq)]
@@ -37,34 +36,41 @@ enum Answer {
     Y = 0x01000000,
     Z = 0x02000000,
 }
-named!(parse_answer<&str, Answer>, alt!(
-    complete!(tag!("a")) => { |_| Answer::A } |
-    complete!(tag!("b")) => { |_| Answer::B } |
-    complete!(tag!("c")) => { |_| Answer::C } |
-    complete!(tag!("d")) => { |_| Answer::D } |
-    complete!(tag!("e")) => { |_| Answer::E } |
-    complete!(tag!("f")) => { |_| Answer::F } |
-    complete!(tag!("g")) => { |_| Answer::G } |
-    complete!(tag!("h")) => { |_| Answer::H } |
-    complete!(tag!("i")) => { |_| Answer::I } |
-    complete!(tag!("j")) => { |_| Answer::J } |
-    complete!(tag!("k")) => { |_| Answer::K } |
-    complete!(tag!("l")) => { |_| Answer::L } |
-    complete!(tag!("m")) => { |_| Answer::M } |
-    complete!(tag!("n")) => { |_| Answer::N } |
-    complete!(tag!("o")) => { |_| Answer::O } |
-    complete!(tag!("p")) => { |_| Answer::P } |
-    complete!(tag!("q")) => { |_| Answer::Q } |
-    complete!(tag!("r")) => { |_| Answer::R } |
-    complete!(tag!("s")) => { |_| Answer::S } |
-    complete!(tag!("t")) => { |_| Answer::T } |
-    complete!(tag!("u")) => { |_| Answer::U } |
-    complete!(tag!("v")) => { |_| Answer::V } |
-    complete!(tag!("w")) => { |_| Answer::W } |
-    complete!(tag!("x")) => { |_| Answer::X } |
-    complete!(tag!("y")) => { |_| Answer::Y } |
-    complete!(tag!("z")) => { |_| Answer::Z }
-));
+
+fn parse_answer(input: &str) -> IResult<&str, Answer> {
+    alt((
+        alt((
+            value(Answer::A, char('a')),
+            value(Answer::B, char('b')),
+            value(Answer::C, char('c')),
+            value(Answer::D, char('d')),
+            value(Answer::E, char('e')),
+            value(Answer::F, char('f')),
+            value(Answer::G, char('g')),
+            value(Answer::H, char('h')),
+            value(Answer::I, char('i')),
+            value(Answer::J, char('j')),
+            value(Answer::K, char('k')),
+            value(Answer::L, char('l')),
+            value(Answer::M, char('m')),
+        )),
+        alt((
+            value(Answer::N, char('n')),
+            value(Answer::O, char('o')),
+            value(Answer::P, char('p')),
+            value(Answer::Q, char('q')),
+            value(Answer::R, char('r')),
+            value(Answer::S, char('s')),
+            value(Answer::T, char('t')),
+            value(Answer::U, char('u')),
+            value(Answer::V, char('v')),
+            value(Answer::W, char('w')),
+            value(Answer::X, char('x')),
+            value(Answer::Y, char('y')),
+            value(Answer::Z, char('z')),
+        )),
+    ))(input)
+}
 
 fn parse_answers(input: &str) -> IResult<&str, Vec<Answer>> {
     many1(parse_answer)(input)
