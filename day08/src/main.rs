@@ -1,62 +1,37 @@
-use nom::{
-    branch::alt,
-    bytes::complete::tag,
-    character::complete::{char, digit1, line_ending, space1},
-    combinator::map_res,
-    combinator::value,
-    multi::separated_list1,
-    sequence::separated_pair,
-    IResult,
-};
+mod parse;
 
 #[derive(Debug, Copy, Clone, PartialEq)]
-enum Instruction {
+pub enum Instruction {
     Nop(isize),
     Acc(isize),
     Jmp(isize),
 }
 
-fn parse_number(input: &str) -> IResult<&str, isize> {
-    let (input, sign) = alt((value(-1, char('-')), value(1, char('+'))))(input)?;
-    let (input, abs) = map_res(digit1, |s: &str| s.parse::<isize>())(input)?;
-    Ok((input, sign * abs))
+#[derive(Debug, Default, Copy, Clone)]
+struct State {
+    acc: isize,
+    ip: isize,
 }
 
-fn parse_nop(input: &str) -> IResult<&str, Instruction> {
-    let (input, (_, value)) = separated_pair(tag("nop"), space1, parse_number)(input)?;
-    Ok((input, Instruction::Nop(value)))
-}
-fn parse_jmp(input: &str) -> IResult<&str, Instruction> {
-    let (input, (_, value)) = separated_pair(tag("jmp"), space1, parse_number)(input)?;
-    Ok((input, Instruction::Jmp(value)))
-}
-fn parse_acc(input: &str) -> IResult<&str, Instruction> {
-    let (input, (_, value)) = separated_pair(tag("acc"), space1, parse_number)(input)?;
-    Ok((input, Instruction::Acc(value)))
-}
-fn parse_instruction(input: &str) -> IResult<&str, Instruction> {
-    alt((parse_nop, parse_jmp, parse_acc))(input)
-}
+impl Instruction {
+    fn apply(&self, state: &mut State) {
+        use Instruction::*;
 
-fn parse_program(input: &str) -> IResult<&str, Vec<Instruction>> {
-    separated_list1(line_ending, parse_instruction)(input)
-}
-
-fn read_file() -> String {
-    use std::fs::File;
-    use std::io::prelude::*;
-
-    let mut file = File::open("input.txt").expect("could not open file");
-    let mut input = String::new();
-    file.read_to_string(&mut input)
-        .expect("could not read file");
-    input
+        match self {
+            Nop(_) => state.ip += 1,
+            Jmp(x) => state.ip += x,
+            Acc(x) => {
+                state.acc += x;
+                state.ip += 1;
+            }
+        }
+    }
 }
 
 use std::collections::HashMap;
+#[derive(Default)]
 struct VM {
-    acc: isize,
-    ip: isize,
+    state: State,
     instructions: Vec<Instruction>,
 
     // for this challenge
@@ -67,39 +42,27 @@ struct VM {
 impl VM {
     fn new(instructions: Vec<Instruction>) -> Self {
         VM {
-            acc: 0,
-            ip: 0,
             instructions,
-
-            step: 0,
-            history: HashMap::new(),
+            ..Default::default()
         }
     }
 
     fn step(&mut self) {
-        match self.instructions[self.ip as usize] {
-            Instruction::Nop(_) => self.ip += 1,
-            Instruction::Jmp(x) => self.ip += x,
-            Instruction::Acc(x) => {
-                self.acc += x;
-                self.ip += 1;
-            }
-        }
-
-        self.step += 1;
+        self.instructions[self.state.ip as usize].apply(&mut self.state);
     }
 
     fn run(&mut self) -> Result<isize, isize> {
         loop {
-            if self.history.insert(self.ip, self.step).is_some() {
-                return Err(self.acc);
+            if self.history.insert(self.state.ip, self.step).is_some() {
+                return Err(self.state.acc);
             }
 
-            if self.ip as usize >= self.instructions.len() {
-                return Ok(self.acc);
+            if self.state.ip as usize >= self.instructions.len() {
+                return Ok(self.state.acc);
             }
 
             self.step();
+            self.step += 1;
         }
     }
 }
@@ -152,8 +115,8 @@ fn fix_program(instructions: Vec<Instruction>) -> isize {
 }
 
 fn main() {
-    let input = read_file();
-    let (_, instructions) = parse_program(&input).unwrap();
+    let input = parse::read_file();
+    let (_, instructions) = parse::program(&input).unwrap();
     let mut vm = VM::new(instructions.clone());
     match vm.run() {
         Ok(acc) => println!("program terminated! acc: {}", acc),
@@ -162,37 +125,6 @@ fn main() {
 
     let acc = fix_program(instructions);
     println!("Program fixed! acc: {}", acc);
-}
-
-#[test]
-fn test_parse_program() {
-    use Instruction::*;
-
-    let input = "nop +0
-acc +1
-jmp +4
-acc +3
-jmp -3
-acc -99
-acc +1
-jmp -4
-acc +6";
-    let (input, instructions) = parse_program(input).unwrap();
-    assert_eq!(input, "");
-    assert_eq!(
-        instructions,
-        vec![
-            Nop(0),
-            Acc(1),
-            Jmp(4),
-            Acc(3),
-            Jmp(-3),
-            Acc(-99),
-            Acc(1),
-            Jmp(-4),
-            Acc(6),
-        ]
-    )
 }
 
 #[test]

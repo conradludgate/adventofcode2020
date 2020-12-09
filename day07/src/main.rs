@@ -1,62 +1,9 @@
-use nom::{
-    branch::alt,
-    bytes::complete::{tag, take_until},
-    character::complete::{digit1, line_ending, space1},
-    combinator::map_res,
-    combinator::value,
-    multi::separated_list1,
-    sequence::{separated_pair, terminated},
-    IResult,
-};
+mod parse;
 
 #[derive(Debug, Clone, PartialEq)]
-struct Rule<'a> {
+pub struct Rule<'a> {
     bag_name: &'a str,
     contains: Vec<(usize, &'a str)>,
-}
-
-fn parse_number(input: &str) -> IResult<&str, usize> {
-    map_res(digit1, |s: &str| s.parse::<usize>())(input)
-}
-
-fn parse_contain(input: &str) -> IResult<&str, (usize, &str)> {
-    separated_pair(
-        parse_number,
-        space1,
-        terminated(take_until(" bag"), alt((tag(" bags"), tag(" bag")))),
-    )(input)
-}
-
-fn parse_contains(input: &str) -> IResult<&str, Vec<(usize, &str)>> {
-    terminated(
-        alt((
-            value(vec![], tag("no other bags")),
-            separated_list1(tag(", "), parse_contain),
-        )),
-        tag("."),
-    )(input)
-}
-
-fn parse_rule(input: &str) -> IResult<&str, Rule> {
-    let (input, bag_name) = terminated(take_until(" bags contain "), tag(" bags contain "))(input)?;
-    let (input, contains) = parse_contains(input)?;
-
-    Ok((input, Rule { bag_name, contains }))
-}
-
-fn parse_rules(input: &str) -> IResult<&str, Vec<Rule>> {
-    separated_list1(line_ending, parse_rule)(input)
-}
-
-fn read_file() -> String {
-    use std::fs::File;
-    use std::io::prelude::*;
-
-    let mut file = File::open("input.txt").expect("could not open file");
-    let mut input = String::new();
-    file.read_to_string(&mut input)
-        .expect("could not read file");
-    input
 }
 
 use std::collections::HashMap;
@@ -109,20 +56,41 @@ fn can_hold<'a>(
     can_hold_set
 }
 
-fn must_contain<'a>(
-    contain_map: &HashMap<&'a str, Vec<(usize, &'a str)>>,
-    bag_name: &str,
-) -> usize {
-    let mut count = 1;
-    for &(amount, bag_name) in &contain_map[bag_name] {
-        count += amount * must_contain(contain_map, bag_name)
+use std::cell::RefCell;
+struct MustContain<'a> {
+    cache: RefCell<HashMap<&'a str, usize>>,
+    contain_map: HashMap<&'a str, Vec<(usize, &'a str)>>,
+}
+
+impl<'a> MustContain<'a> {
+    pub fn new(rules: &Vec<Rule<'a>>) -> Self {
+        MustContain {
+            cache: RefCell::new(HashMap::new()),
+            contain_map: rules_into_contain_map(rules),
+        }
     }
-    count
+
+    pub fn must_contain(&self, bag_name: &'a str) -> usize {
+        {
+            if let Some(&count) = self.cache.borrow().get(bag_name) {
+                return count;
+            }
+        }
+        let result = self.contain_map[bag_name]
+            .iter()
+            .fold(1, |acc, (amount, name)| {
+                acc + amount * self.must_contain(name)
+            });
+
+        self.cache.borrow_mut().insert(bag_name, result);
+
+        result
+    }
 }
 
 fn main() {
-    let input = read_file();
-    let (_, rules) = parse_rules(&input).unwrap();
+    let input = parse::read_file();
+    let (_, rules) = parse::rules(&input).unwrap();
     let contained_map = rules_into_contained_map(&rules);
     let can_hold_set = can_hold(&contained_map, "shiny gold");
     println!(
@@ -130,66 +98,8 @@ fn main() {
         can_hold_set.len()
     );
 
-    let contain_map = rules_into_contain_map(&rules);
-    let count = must_contain(&contain_map, "shiny gold") - 1;
+    let count = MustContain::new(&rules).must_contain("shiny gold") - 1;
     println!("shiny gold bag must contain {:?} total bags", count);
-}
-
-#[test]
-fn test_parse_rules() {
-    let input = "light red bags contain 1 bright white bag, 2 muted yellow bags.
-dark orange bags contain 3 bright white bags, 4 muted yellow bags.
-bright white bags contain 1 shiny gold bag.
-muted yellow bags contain 2 shiny gold bags, 9 faded blue bags.
-shiny gold bags contain 1 dark olive bag, 2 vibrant plum bags.
-dark olive bags contain 3 faded blue bags, 4 dotted black bags.
-vibrant plum bags contain 5 faded blue bags, 6 dotted black bags.
-faded blue bags contain no other bags.
-dotted black bags contain no other bags.";
-
-    let (input, rules) = parse_rules(input).unwrap();
-    assert_eq!(input, "");
-    assert_eq!(
-        rules,
-        vec![
-            Rule {
-                bag_name: "light red",
-                contains: vec![(1, "bright white"), (2, "muted yellow")]
-            },
-            Rule {
-                bag_name: "dark orange",
-                contains: vec![(3, "bright white"), (4, "muted yellow")]
-            },
-            Rule {
-                bag_name: "bright white",
-                contains: vec![(1, "shiny gold")]
-            },
-            Rule {
-                bag_name: "muted yellow",
-                contains: vec![(2, "shiny gold"), (9, "faded blue")]
-            },
-            Rule {
-                bag_name: "shiny gold",
-                contains: vec![(1, "dark olive"), (2, "vibrant plum")]
-            },
-            Rule {
-                bag_name: "dark olive",
-                contains: vec![(3, "faded blue"), (4, "dotted black")]
-            },
-            Rule {
-                bag_name: "vibrant plum",
-                contains: vec![(5, "faded blue"), (6, "dotted black")]
-            },
-            Rule {
-                bag_name: "faded blue",
-                contains: vec![]
-            },
-            Rule {
-                bag_name: "dotted black",
-                contains: vec![]
-            },
-        ]
-    )
 }
 
 #[test]
@@ -204,7 +114,7 @@ vibrant plum bags contain 5 faded blue bags, 6 dotted black bags.
 faded blue bags contain no other bags.
 dotted black bags contain no other bags.";
 
-    let (_, rules) = parse_rules(input).unwrap();
+    let (_, rules) = parse::rules(input).unwrap();
     let map = rules_into_contain_map(&rules);
     assert_eq!(
         map["light red"],
@@ -247,7 +157,7 @@ vibrant plum bags contain 5 faded blue bags, 6 dotted black bags.
 faded blue bags contain no other bags.
 dotted black bags contain no other bags.";
 
-    let (_, rules) = parse_rules(input).unwrap();
+    let (_, rules) = parse::rules(input).unwrap();
     let map = rules_into_contained_map(&rules);
     assert_eq!(map["bright white"], vec!["light red", "dark orange"]);
     assert_eq!(map["muted yellow"], vec!["light red", "dark orange"]);
@@ -273,7 +183,7 @@ vibrant plum bags contain 5 faded blue bags, 6 dotted black bags.
 faded blue bags contain no other bags.
 dotted black bags contain no other bags.";
 
-    let (_, rules) = parse_rules(input).unwrap();
+    let (_, rules) = parse::rules(input).unwrap();
     let contained_map = rules_into_contained_map(&rules);
     let can_hold_set = can_hold(&contained_map, "shiny gold");
     assert_eq!(can_hold_set.len(), 4);
@@ -295,10 +205,9 @@ vibrant plum bags contain 5 faded blue bags, 6 dotted black bags.
 faded blue bags contain no other bags.
 dotted black bags contain no other bags.";
 
-    let (_, rules) = parse_rules(input).unwrap();
-    let contain_map = rules_into_contain_map(&rules);
-    let count = must_contain(&contain_map, "shiny gold");
-    assert_eq!(count - 1, 32);
+    let (_, rules) = parse::rules(input).unwrap();
+    let count = MustContain::new(&rules).must_contain("shiny gold") - 1;
+    assert_eq!(count, 32);
 }
 
 #[test]
@@ -311,8 +220,7 @@ dark green bags contain 2 dark blue bags.
 dark blue bags contain 2 dark violet bags.
 dark violet bags contain no other bags.";
 
-    let (_, rules) = parse_rules(input).unwrap();
-    let contain_map = rules_into_contain_map(&rules);
-    let count = must_contain(&contain_map, "shiny gold");
-    assert_eq!(count - 1, 126);
+    let (_, rules) = parse::rules(input).unwrap();
+    let count = MustContain::new(&rules).must_contain("shiny gold") - 1;
+    assert_eq!(count, 126);
 }

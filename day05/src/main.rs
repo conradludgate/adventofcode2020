@@ -1,16 +1,17 @@
 use nom::{
-    alt, character::complete::line_ending, complete, multi::count, multi::separated_list1, named,
-    tag, IResult,
+    branch::alt,
+    character::complete::{char, line_ending},
+    combinator::value,
+    multi::{count, separated_list1},
+    IResult,
 };
 
-named!(parse_fb<&str, usize>, alt!(
-    complete!(tag!("F")) => { |_| 0 } |
-    complete!(tag!("B")) => { |_| 1 }
-));
-named!(parse_lr<&str, usize>, alt!(
-    complete!(tag!("L")) => { |_| 0 } |
-    complete!(tag!("R")) => { |_| 1 }
-));
+fn parse_fb(input: &str) -> IResult<&str, usize> {
+    alt((value(0, char('F')), value(1, char('B'))))(input)
+}
+fn parse_lr(input: &str) -> IResult<&str, usize> {
+    alt((value(0, char('L')), value(1, char('R'))))(input)
+}
 
 fn parse_row(input: &str) -> IResult<&str, usize> {
     let (input, bits) = count(parse_fb, 7)(input)?;
