@@ -1,43 +1,26 @@
 mod parse;
 
-// from day01
-fn find_sum<T>(numbers: &[T], sum: T, n: usize) -> Option<Vec<T>>
-where
-    T: std::ops::Add<Output = T> + std::ops::Sub<Output = T> + PartialEq + PartialOrd + Copy,
-{
-    match n {
-        0 => Some(vec![]),
-        1 => {
-            if numbers.contains(&sum) {
-                Some(vec![sum])
-            } else {
-                None
-            }
+fn find_sum_pair(numbers: &[usize], sum: usize) -> Option<(usize, usize)> {
+    for &number in numbers {
+        if number > sum {
+            continue;
         }
-        _ => {
-            for i in 0..numbers.len() {
-                if numbers[i] < sum {
-                    let attempt = find_sum(&numbers[i + 1..], sum - numbers[i], n - 1);
-                    if let Some(mut v) = attempt {
-                        v.push(numbers[i]);
-                        return Some(v);
-                    }
-                }
-            }
-            None
+        let inverse = sum - number;
+        if numbers.contains(&inverse) {
+            return Some((number, inverse));
         }
     }
+    None
 }
-
 #[test]
 fn find_sum_pair_test() {
-    let output = find_sum(&vec![1721, 979, 366, 299, 675, 1456], 2020, 2);
-    assert_eq!(output, Some(vec![299, 1721]));
+    let output = find_sum_pair(&vec![1721, 979, 366, 299, 675, 1456], 2020);
+    assert_eq!(output, Some((1721, 299)));
 }
 
 fn find_invalid(numbers: &[usize], length: usize) -> Option<usize> {
     for i in length..numbers.len() {
-        let sum = find_sum(&numbers[(i - length)..i], numbers[i], 2);
+        let sum = find_sum_pair(&numbers[(i - length)..i], numbers[i]);
         if sum.is_none() {
             return Some(numbers[i]);
         }
