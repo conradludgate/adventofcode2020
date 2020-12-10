@@ -22,6 +22,36 @@ fn runs(mut numbers: Vec<usize>) -> Vec<usize> {
     runs
 }
 
+fn gaps(runs: &Vec<usize>) -> (usize, usize) {
+    let threes = runs.len();
+    let ones = runs.iter().sum::<usize>() - threes;
+    (ones, threes)
+}
+
+fn arrangements(runs: &Vec<usize>) -> usize {
+    let map = vec![0, 1, 1, 2, 4, 7]; // hard coded permutation map
+    runs.into_iter()
+        .map(|&run| map[run])
+        .fold(1, |acc, x| acc * x)
+}
+
+fn main() {
+    let input = parse::read_file();
+    let (_, numbers) = parse::numbers(&input).unwrap();
+    let runs = runs(numbers);
+
+    let (ones, threes) = gaps(&runs);
+    println!(
+        "ones: {}, three: {}, answer: {}",
+        ones,
+        threes,
+        ones * threes
+    );
+
+    let arrangements = arrangements(&runs);
+    println!("arrangements: {}", arrangements)
+}
+
 #[test]
 fn test_runs_1() {
     let numbers = vec![16, 10, 15, 5, 1, 11, 7, 19, 6, 12, 4];
@@ -37,12 +67,6 @@ fn test_runs_2() {
     ];
     let runs = runs(numbers);
     assert_eq!(runs, vec![5, 5, 1, 4, 3, 1, 5, 2, 1, 5]);
-}
-
-fn gaps(runs: &Vec<usize>) -> (usize, usize) {
-    let threes = runs.len();
-    let ones = runs.iter().sum::<usize>() - threes;
-    (ones, threes)
 }
 
 #[test]
@@ -64,13 +88,6 @@ fn test_gaps_2() {
     assert_eq!(threes, 10)
 }
 
-fn arrangements(runs: &Vec<usize>) -> usize {
-    let map = vec![0, 1, 1, 2, 4, 7]; // hard coded permutation map
-    runs.into_iter()
-        .map(|&run| map[run])
-        .fold(1, |acc, x| acc * x)
-}
-
 #[test]
 fn test_arrangements_1() {
     let numbers = vec![16, 10, 15, 5, 1, 11, 7, 19, 6, 12, 4];
@@ -86,21 +103,4 @@ fn test_arrangements_2() {
     ];
     let arrangements = arrangements(&runs(numbers));
     assert_eq!(arrangements, 19208);
-}
-
-fn main() {
-    let input = parse::read_file();
-    let (_, numbers) = parse::numbers(&input).unwrap();
-    let runs = runs(numbers);
-
-    let (ones, threes) = gaps(&runs);
-    println!(
-        "ones: {}, three: {}, answer: {}",
-        ones,
-        threes,
-        ones * threes
-    );
-
-    let arrangements = arrangements(&runs);
-    println!("arrangements: {}", arrangements)
 }
