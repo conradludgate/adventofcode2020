@@ -1,32 +1,33 @@
+use crate::parsers::number;
+
 use super::Instruction;
 
 use nom::{
     branch::alt,
     bytes::complete::tag,
-    character::complete::{char, digit1, line_ending, space1},
-    combinator::map_res,
+    character::complete::{char, line_ending, space1},
     combinator::value,
     multi::separated_list1,
     sequence::separated_pair,
     IResult,
 };
 
-pub fn number(input: &str) -> IResult<&str, isize> {
+pub fn signed_number(input: &str) -> IResult<&str, isize> {
     let (input, sign) = alt((value(-1, char('-')), value(1, char('+'))))(input)?;
-    let (input, abs) = map_res(digit1, |s: &str| s.parse::<isize>())(input)?;
+    let (input, abs) = number::<isize>(input)?;
     Ok((input, sign * abs))
 }
 
 pub fn nop(input: &str) -> IResult<&str, Instruction> {
-    let (input, (_, value)) = separated_pair(tag("nop"), space1, number)(input)?;
+    let (input, (_, value)) = separated_pair(tag("nop"), space1, signed_number)(input)?;
     Ok((input, Instruction::Nop(value)))
 }
 pub fn jmp(input: &str) -> IResult<&str, Instruction> {
-    let (input, (_, value)) = separated_pair(tag("jmp"), space1, number)(input)?;
+    let (input, (_, value)) = separated_pair(tag("jmp"), space1, signed_number)(input)?;
     Ok((input, Instruction::Jmp(value)))
 }
 pub fn acc(input: &str) -> IResult<&str, Instruction> {
-    let (input, (_, value)) = separated_pair(tag("acc"), space1, number)(input)?;
+    let (input, (_, value)) = separated_pair(tag("acc"), space1, signed_number)(input)?;
     Ok((input, Instruction::Acc(value)))
 }
 pub fn instruction(input: &str) -> IResult<&str, Instruction> {

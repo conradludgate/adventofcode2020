@@ -1,4 +1,4 @@
-mod parse;
+use crate::parsers::{all, lines, number};
 use crate::Challenge;
 
 pub struct Day09 {
@@ -11,7 +11,7 @@ impl Challenge for Day09 {
     }
     fn new(input: String) -> Self {
         Day09 {
-            numbers: parse::numbers(&input).unwrap().1,
+            numbers: all(lines(number)(&input)),
         }
     }
     fn part_one(&self) -> usize {

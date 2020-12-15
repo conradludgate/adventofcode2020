@@ -1,4 +1,27 @@
-mod parse;
+use crate::parsers::{lines, number, all};
+use crate::Challenge;
+
+pub struct Day10 {
+    runs: Vec<usize>,
+}
+
+impl Challenge for Day10 {
+    fn name() -> &'static str {
+        "day10"
+    }
+    fn new(input: String) -> Self {
+        Day10 {
+            runs: runs(all(lines(number)(&input))),
+        }
+    }
+    fn part_one(&self) -> usize {
+        let (ones, threes) = gaps(&self.runs);
+        ones * threes
+    }
+    fn part_two(&self) -> usize {
+        arrangements(&self.runs)
+    }
+}
 
 fn runs(mut numbers: Vec<usize>) -> Vec<usize> {
     numbers.sort_unstable();
@@ -33,23 +56,6 @@ fn arrangements(runs: &Vec<usize>) -> usize {
     runs.into_iter()
         .map(|&run| map[run])
         .fold(1, |acc, x| acc * x)
-}
-
-fn main() {
-    let input = parse::read_file();
-    let (_, numbers) = parse::numbers(&input).unwrap();
-    let runs = runs(numbers);
-
-    let (ones, threes) = gaps(&runs);
-    println!(
-        "ones: {}, three: {}, answer: {}",
-        ones,
-        threes,
-        ones * threes
-    );
-
-    let arrangements = arrangements(&runs);
-    println!("arrangements: {}", arrangements)
 }
 
 #[test]
