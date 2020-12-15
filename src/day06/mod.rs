@@ -6,6 +6,29 @@ use nom::{
     IResult,
 };
 
+use crate::Challenge;
+
+pub struct Day06 {
+    group_answers: Vec<Vec<Vec<Answer>>>,
+}
+
+impl Challenge for Day06 {
+    fn name() -> &'static str {
+        "day06"
+    }
+    fn new(input: String) -> Self {
+        Day06 {
+            group_answers: parse_all_group_answers(&input).unwrap().1,
+        }
+    }
+    fn part_one(&self) -> usize {
+        count_all_group_answers(&self.group_answers) as usize
+    }
+    fn part_two(&self) -> usize {
+        count_all_group_answers2(&self.group_answers) as usize
+    }
+}
+
 #[derive(Debug, Copy, Clone, PartialEq)]
 #[repr(u32)]
 enum Answer {
@@ -84,17 +107,6 @@ fn parse_all_group_answers(input: &str) -> IResult<&str, Vec<Vec<Vec<Answer>>>> 
     separated_list1(count(line_ending, 2), parse_group_answers)(input)
 }
 
-fn read_file() -> String {
-    use std::fs::File;
-    use std::io::prelude::*;
-
-    let mut file = File::open("input.txt").expect("could not open file");
-    let mut input = String::new();
-    file.read_to_string(&mut input)
-        .expect("could not read file");
-    input
-}
-
 fn count_group_answers(group_answers: &Vec<Vec<Answer>>) -> u32 {
     group_answers
         .iter()
@@ -123,19 +135,6 @@ fn count_all_group_answers2(all_group_answers: &Vec<Vec<Vec<Answer>>>) -> u32 {
     all_group_answers.iter().fold(0, |a, group_answers| {
         a + count_group_answers2(group_answers)
     })
-}
-
-fn main() {
-    let input = read_file();
-    let (_, all_group_answers) = parse_all_group_answers(&input).expect("could not parse file");
-    println!(
-        "count sum: {:?}",
-        count_all_group_answers(&all_group_answers)
-    );
-    println!(
-        "count sum2: {:?}",
-        count_all_group_answers2(&all_group_answers)
-    );
 }
 
 #[test]
