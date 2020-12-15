@@ -1,4 +1,4 @@
-use crate::Instruction;
+use super::Instruction;
 
 use nom::{
     branch::alt,
@@ -10,17 +10,6 @@ use nom::{
     sequence::separated_pair,
     IResult,
 };
-
-pub fn read_file() -> String {
-    use std::fs::File;
-    use std::io::prelude::*;
-
-    let mut file = File::open("input.txt").expect("could not open file");
-    let mut input = String::new();
-    file.read_to_string(&mut input)
-        .expect("could not read file");
-    input
-}
 
 pub fn number(input: &str) -> IResult<&str, isize> {
     let (input, sign) = alt((value(-1, char('-')), value(1, char('+'))))(input)?;

@@ -1,5 +1,32 @@
 mod parse;
 
+use crate::Challenge;
+
+pub struct Day08 {
+    instructions: Vec<Instruction>,
+}
+
+impl Challenge for Day08 {
+    fn name() -> &'static str {
+        "day08"
+    }
+    fn new(input: String) -> Self {
+        Day08 {
+            instructions: parse::program(&input).unwrap().1,
+        }
+    }
+    fn part_one(&self) -> usize {
+        let mut vm = VM::new(self.instructions.clone());
+        match vm.run() {
+            Ok(acc) => panic!(format!("program terminated! acc: {}", acc)),
+            Err(acc) => acc as usize,
+        }
+    }
+    fn part_two(&self) -> usize {
+        fix_program(self.instructions.clone()) as usize
+    }
+}
+
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub enum Instruction {
     Nop(isize),
@@ -112,19 +139,6 @@ fn fix_program(instructions: Vec<Instruction>) -> isize {
         }
     }
     panic!("could not fix program")
-}
-
-fn main() {
-    let input = parse::read_file();
-    let (_, instructions) = parse::program(&input).unwrap();
-    let mut vm = VM::new(instructions.clone());
-    match vm.run() {
-        Ok(acc) => println!("program terminated! acc: {}", acc),
-        Err(acc) => println!("loop encountered! acc: {}", acc),
-    }
-
-    let acc = fix_program(instructions);
-    println!("Program fixed! acc: {}", acc);
 }
 
 #[test]

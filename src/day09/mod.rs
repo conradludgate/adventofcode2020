@@ -1,4 +1,31 @@
 mod parse;
+use crate::Challenge;
+
+pub struct Day09 {
+    numbers: Vec<usize>,
+}
+
+impl Challenge for Day09 {
+    fn name() -> &'static str {
+        "day09"
+    }
+    fn new(input: String) -> Self {
+        Day09 {
+            numbers: parse::numbers(&input).unwrap().1,
+        }
+    }
+    fn part_one(&self) -> usize {
+        find_invalid(&self.numbers, 25).unwrap()
+    }
+    fn part_two(&self) -> usize {
+        let invalid = find_invalid(&self.numbers, 25).unwrap();
+        let contiguous_sum = find_sum_contiguous(&self.numbers, invalid);
+        let max = contiguous_sum.iter().max().unwrap();
+        let min = contiguous_sum.iter().min().unwrap();
+
+        min + max
+    }
+}
 
 fn find_sum_pair(numbers: &[usize], sum: usize) -> Option<(usize, usize)> {
     for &number in numbers {
@@ -36,20 +63,6 @@ fn find_sum_contiguous(numbers: &[usize], sum: usize) -> &[usize] {
             j += 1;
         }
     }
-}
-
-fn main() {
-    let input = parse::read_file();
-    let (_, numbers) = parse::numbers(&input).unwrap();
-    let invalid = find_invalid(&numbers, 25).unwrap();
-    println!("first invalid number: {}", invalid);
-
-    let contiguous_sum = find_sum_contiguous(&numbers, invalid);
-    println!("contiguous sum: {:?}", contiguous_sum);
-    let max = contiguous_sum.iter().max().unwrap();
-    let min = contiguous_sum.iter().min().unwrap();
-
-    println!("min + max: {}", min + max);
 }
 
 #[test]
