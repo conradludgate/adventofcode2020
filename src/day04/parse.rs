@@ -1,4 +1,4 @@
-use crate::{Field, FieldData, Passport};
+use super::{Field, FieldData, Passport};
 
 use nom::{
     branch::alt,
@@ -29,7 +29,13 @@ pub fn field(input: &str) -> IResult<&str, Field> {
 
 pub fn field_data(input: &str) -> IResult<&str, FieldData> {
     let (input, (field, data)) = separated_pair(field, char(':'), data)(input)?;
-    Ok((input, FieldData { field, data }))
+    Ok((
+        input,
+        FieldData {
+            field,
+            data: data.to_string(),
+        },
+    ))
 }
 
 pub fn passport(input: &str) -> IResult<&str, Passport> {
@@ -39,17 +45,6 @@ pub fn passport(input: &str) -> IResult<&str, Passport> {
 
 pub fn passports(input: &str) -> IResult<&str, Vec<Passport>> {
     separated_list1(count(line_ending, 2), passport)(input)
-}
-
-pub fn read_file() -> String {
-    use std::fs::File;
-    use std::io::prelude::*;
-
-    let mut file = File::open("input.txt").expect("could not open file");
-    let mut input = String::new();
-    file.read_to_string(&mut input)
-        .expect("could not read file");
-    input
 }
 
 pub fn hex_colour(input: &str) -> IResult<&str, Vec<char>> {
@@ -86,47 +81,43 @@ pub fn height(input: &str) -> IResult<&str, Height> {
     ))(input)
 }
 
-mod tests {
-    use super::*;
-    use crate::Field;
-    #[test]
-    fn test_parse_field() {
-        let inputs = vec!["byr", "iyr", "eyr", "hgt", "hcl", "ecl", "pid", "cid"];
-        use Field::*;
-        let expected = vec![
-            BirthYear,
-            IssueYear,
-            ExpirationYear,
-            Height,
-            HairColor,
-            EyeColor,
-            PassportID,
-            CountryID,
-        ];
+#[test]
+fn test_parse_field() {
+    let inputs = vec!["byr", "iyr", "eyr", "hgt", "hcl", "ecl", "pid", "cid"];
+    use Field::*;
+    let expected = vec![
+        BirthYear,
+        IssueYear,
+        ExpirationYear,
+        Height,
+        HairColor,
+        EyeColor,
+        PassportID,
+        CountryID,
+    ];
 
-        for (input, expected) in inputs.into_iter().zip(expected.into_iter()) {
-            let (input, field) = field(input).unwrap();
-            assert_eq!(input.len(), 0);
-            assert_eq!(field, expected);
-        }
-    }
-
-    #[test]
-    fn test_parse_field_data() {
-        let inputs = vec!["byr:1971", "hgt:170cm", "hcl:#ff0000"];
-
-        for input in inputs.into_iter() {
-            let (input, _) = field_data(input).unwrap();
-            assert_eq!(input.len(), 0);
-        }
-    }
-
-    #[test]
-    fn test_parse_passport() {
-        let input = "iyr:2013 ecl:amb cid:350 eyr:2023 pid:028048884
-hcl:#cfa07d byr:1929";
-        let (input, fields) = passport(input).unwrap();
+    for (input, expected) in inputs.into_iter().zip(expected.into_iter()) {
+        let (input, field) = field(input).unwrap();
         assert_eq!(input.len(), 0);
-        assert_eq!(fields.0.len(), 7);
+        assert_eq!(field, expected);
     }
+}
+
+#[test]
+fn test_parse_field_data() {
+    let inputs = vec!["byr:1971", "hgt:170cm", "hcl:#ff0000"];
+
+    for input in inputs.into_iter() {
+        let (input, _) = field_data(input).unwrap();
+        assert_eq!(input.len(), 0);
+    }
+}
+
+#[test]
+fn test_parse_passport() {
+    let input = "iyr:2013 ecl:amb cid:350 eyr:2023 pid:028048884
+hcl:#cfa07d byr:1929";
+    let (input, fields) = passport(input).unwrap();
+    assert_eq!(input.len(), 0);
+    assert_eq!(fields.0.len(), 7);
 }

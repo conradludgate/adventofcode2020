@@ -29,8 +29,8 @@ pub(crate) trait Challenge: Sized {
 mod day01;
 mod day02;
 mod day03;
-// mod day04;
-// mod day05;
+mod day04;
+mod day05;
 // mod day06;
 // mod day07;
 // mod day08;
@@ -44,4 +44,6 @@ fn main() {
     day01::Day01::run();
     day02::Day02::run();
     day03::Day03::run();
+    day04::Day04::run();
+    day05::Day05::run();
 }

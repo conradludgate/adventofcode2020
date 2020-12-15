@@ -1,4 +1,29 @@
+use crate::Challenge;
 mod parse;
+
+pub struct Day04 {
+    passports: Vec<Passport>,
+}
+
+impl Challenge for Day04 {
+    fn name() -> &'static str {
+        "day04"
+    }
+    fn new(input: String) -> Self {
+        Day04 {
+            passports: parse::passports(&input).unwrap().1,
+        }
+    }
+    fn part_one(&self) -> usize {
+        self.passports
+            .iter()
+            .filter(|p| p.has_correct_fields())
+            .count()
+    }
+    fn part_two(&self) -> usize {
+        self.passports.iter().filter(|p| p.is_valid()).count()
+    }
+}
 
 #[derive(Debug, PartialEq, Copy, Clone)]
 #[repr(u8)]
@@ -13,46 +38,46 @@ pub enum Field {
     CountryID = 0x80,
 }
 
-#[derive(Debug, PartialEq, Copy, Clone)]
-pub struct FieldData<'a> {
+#[derive(Debug, PartialEq, Clone)]
+pub struct FieldData {
     field: Field,
-    data: &'a str,
+    data: String,
 }
 
 #[derive(Debug, PartialEq, Clone)]
-pub struct Passport<'a>(Vec<FieldData<'a>>);
+pub struct Passport(Vec<FieldData>);
 
-impl<'a> FieldData<'a> {
+impl FieldData {
     fn is_valid(&self) -> bool {
         use nom::combinator::{complete, recognize};
         use parse::{eye_colour, height, hex_colour, number, Height::*};
         match self.field {
             Field::BirthYear => {
-                complete(number)(self.data).map_or(false, |(_, year)| 1920 <= year && year <= 2002)
+                complete(number)(&self.data).map_or(false, |(_, year)| 1920 <= year && year <= 2002)
             }
             Field::IssueYear => {
-                complete(number)(self.data).map_or(false, |(_, year)| 2010 <= year && year <= 2020)
+                complete(number)(&self.data).map_or(false, |(_, year)| 2010 <= year && year <= 2020)
             }
             Field::ExpirationYear => {
-                complete(number)(self.data).map_or(false, |(_, year)| 2020 <= year && year <= 2030)
+                complete(number)(&self.data).map_or(false, |(_, year)| 2020 <= year && year <= 2030)
             }
             Field::Height => {
-                complete(height)(self.data).map_or(false, |(_, height)| match height {
+                complete(height)(&self.data).map_or(false, |(_, height)| match height {
                     Centimetres(cm) => 150 <= cm && cm <= 193,
                     Inches(cm) => 59 <= cm && cm <= 76,
                 })
             }
-            Field::HairColor => complete(hex_colour)(self.data).is_ok(),
-            Field::EyeColor => complete(eye_colour)(self.data).is_ok(),
+            Field::HairColor => complete(hex_colour)(&self.data).is_ok(),
+            Field::EyeColor => complete(eye_colour)(&self.data).is_ok(),
             Field::PassportID => {
-                recognize(complete(number))(self.data).map_or(false, |(_, input)| input.len() == 9)
+                recognize(complete(number))(&self.data).map_or(false, |(_, input)| input.len() == 9)
             }
             Field::CountryID => true,
         }
     }
 }
 
-impl<'a> Passport<'a> {
+impl Passport {
     fn into_bits(&self) -> u8 {
         self.0.iter().fold(0, |a, fd| a | fd.field as u8)
     }
@@ -64,20 +89,6 @@ impl<'a> Passport<'a> {
     fn is_valid(&self) -> bool {
         self.has_correct_fields() && self.0.iter().fold(true, |a, fd| a && fd.is_valid())
     }
-}
-
-fn main() {
-    let input = parse::read_file();
-    let (_, passports) = parse::passports(&input).expect("could not parse file");
-    let valid_fields = passports
-        .clone()
-        .into_iter()
-        .filter(Passport::has_correct_fields)
-        .count();
-    println!("valid fields: {:?}", valid_fields);
-
-    let valid = passports.into_iter().filter(Passport::is_valid).count();
-    println!("valid: {:?}", valid)
 }
 
 #[test]

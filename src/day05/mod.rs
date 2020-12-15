@@ -6,6 +6,44 @@ use nom::{
     IResult,
 };
 
+use crate::Challenge;
+
+pub struct Day05 {
+    seat_ids: Vec<usize>,
+}
+
+impl Challenge for Day05 {
+    fn name() -> &'static str {
+        "day05"
+    }
+    fn new(input: String) -> Self {
+        let (_, seats) = parse_seats(&input).unwrap();
+        let seat_ids = seats.into_iter().map(to_seat_id).collect();
+        Day05 { seat_ids }
+    }
+    fn part_one(&self) -> usize {
+        self.seat_ids.iter().fold(0, |a, &id| a.max(id))
+    }
+    fn part_two(&self) -> usize {
+        let max_id = self.seat_ids.iter().fold(0, |a, &id| a.max(id));
+        let min_id = self.seat_ids.iter().fold(max_id, |a, &id| a.min(id));
+        
+        let mut seats: Vec<bool> = Vec::with_capacity(128 * 8);
+        seats.resize(128 * 8, false);
+
+        for &seat_id in self.seat_ids.iter() {
+            seats[seat_id] = true;
+        }
+
+        for (id, &seat) in seats.iter().enumerate() {
+            if !seat && (min_id..=max_id).contains(&id) {
+                return id;
+            }
+        }
+        panic!("no seat found");
+    }
+}
+
 fn parse_fb(input: &str) -> IResult<&str, usize> {
     alt((value(0, char('F')), value(1, char('B'))))(input)
 }
@@ -35,41 +73,8 @@ fn parse_seats(input: &str) -> IResult<&str, Vec<(usize, usize)>> {
     separated_list1(line_ending, parse_seat)(input)
 }
 
-fn read_file() -> String {
-    use std::fs::File;
-    use std::io::prelude::*;
-
-    let mut file = File::open("input.txt").expect("could not open file");
-    let mut input = String::new();
-    file.read_to_string(&mut input)
-        .expect("could not read file");
-    input
-}
-
 fn to_seat_id((row, col): (usize, usize)) -> usize {
     row * 8 + col
-}
-
-fn main() {
-    let input = read_file();
-    let (_, seats) = parse_seats(&input).expect("could not parse file");
-    let seat_ids: Vec<usize> = seats.into_iter().map(to_seat_id).collect();
-    let max_id = seat_ids.iter().fold(0, |a, &id| a.max(id));
-    let min_id = seat_ids.iter().fold(max_id, |a, &id| a.min(id));
-    println!("max id: {}", max_id);
-
-    let mut seats: Vec<bool> = Vec::with_capacity(128 * 8);
-    seats.resize(128 * 8, false);
-
-    for seat_id in seat_ids {
-        seats[seat_id] = true;
-    }
-
-    for (id, &seat) in seats.iter().enumerate() {
-        if !seat && (min_id..=max_id).contains(&id) {
-            println!("empty id: {}", id);
-        }
-    }
 }
 
 #[test]
