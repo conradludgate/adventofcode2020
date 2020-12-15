@@ -1,3 +1,4 @@
+use crate::Challenge;
 use nom::{
     character::complete::{digit1, line_ending},
     combinator::map_res,
@@ -5,23 +6,33 @@ use nom::{
     IResult,
 };
 
+pub struct Day01 {
+    numbers: Vec<usize>,
+}
+
+impl Challenge for Day01 {
+    fn name() -> &'static str {
+        "day01"
+    }
+    fn new(input: String) -> Self {
+        Day01 {
+            numbers: parse_numbers(&input).unwrap().1,
+        }
+    }
+    fn part_one(&self) -> usize {
+        find_sum(&self.numbers, 2020, 2).unwrap().iter().product()
+    }
+    fn part_two(&self) -> usize {
+        find_sum(&self.numbers, 2020, 3).unwrap().iter().product()
+    }
+}
+
 fn parse_number(input: &str) -> IResult<&str, usize> {
     map_res(digit1, |s: &str| s.parse::<usize>())(input)
 }
 
 fn parse_numbers(input: &str) -> IResult<&str, Vec<usize>> {
     separated_list1(line_ending, parse_number)(input)
-}
-
-fn read_file() -> String {
-    use std::fs::File;
-    use std::io::prelude::*;
-
-    let mut file = File::open("input.txt").expect("could not open file");
-    let mut input = String::new();
-    file.read_to_string(&mut input)
-        .expect("could not read file");
-    input
 }
 
 fn find_sum<T>(numbers: &[T], sum: T, n: usize) -> Option<Vec<T>>
@@ -62,28 +73,4 @@ fn find_sum_pair_test() {
 fn find_sum_trio_test() {
     let output = find_sum(&vec![1721, 979, 366, 299, 675, 1456], 2020, 3);
     assert_eq!(output, Some(vec![675, 366, 979]));
-}
-
-fn main() {
-    let input = read_file();
-    let (_, numbers) = parse_numbers(&input).unwrap();
-    let output = find_sum(&numbers, 2020, 2).unwrap();
-    assert_eq!(output.len(), 2);
-    println!(
-        "{} = {}",
-        &output
-            .iter()
-            .fold(String::new(), |a, b| format!("{} x {}", a, b))[3..],
-        output.iter().fold(1, |a, b| a * b)
-    );
-
-    let output = find_sum(&numbers, 2020, 3).unwrap();
-    assert_eq!(output.len(), 3);
-    println!(
-        "{} = {}",
-        &output
-            .iter()
-            .fold(String::new(), |a, b| format!("{} x {}", a, b))[3..],
-        output.iter().fold(1, |a, b| a * b)
-    );
 }

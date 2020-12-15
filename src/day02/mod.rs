@@ -1,3 +1,5 @@
+use crate::Challenge;
+
 use nom::{
     bytes::complete::tag,
     character::complete::{alpha1, anychar, char, digit1, line_ending},
@@ -7,6 +9,33 @@ use nom::{
     IResult,
 };
 
+pub struct Day02 {
+    records: Vec<Record>,
+}
+
+impl Challenge for Day02 {
+    fn name() -> &'static str {
+        "day02"
+    }
+    fn new(input: String) -> Self{
+        Day02 {
+            records: parse_records(&input).unwrap().1,
+        }
+    }
+    fn part_one(&self) -> usize {
+        self.records
+            .iter()
+            .filter(|&record| record.is_valid_1())
+            .count()
+    }
+    fn part_two(&self) -> usize {
+        self.records
+            .iter()
+            .filter(|&record| record.is_valid_2())
+            .count()
+    }
+}
+
 #[derive(Debug, Copy, Clone)]
 struct Policy {
     min: usize,
@@ -15,9 +44,9 @@ struct Policy {
 }
 
 #[derive(Debug, Clone)]
-struct Record<'a> {
+struct Record {
     policy: Policy,
-    password: &'a str,
+    password: String,
 }
 
 fn parse_number(input: &str) -> IResult<&str, usize> {
@@ -37,25 +66,14 @@ fn parse_policy(input: &str) -> IResult<&str, Policy> {
 fn parse_record(input: &str) -> IResult<&str, Record> {
     let (input, (policy, password)) = separated_pair(parse_policy, tag(": "), alpha1)(input)?;
 
-    Ok((input, Record { policy, password }))
+    Ok((input, Record { policy, password: password.to_string() }))
 }
 
 fn parse_records(input: &str) -> IResult<&str, Vec<Record>> {
     separated_list1(line_ending, parse_record)(input)
 }
 
-fn read_file() -> String {
-    use std::fs::File;
-    use std::io::prelude::*;
-
-    let mut file = File::open("input.txt").expect("could not open file");
-    let mut input = String::new();
-    file.read_to_string(&mut input)
-        .expect("could not read file");
-    input
-}
-
-impl<'a> Record<'a> {
+impl Record {
     fn is_valid_1(&self) -> bool {
         let count = self
             .password
@@ -75,18 +93,4 @@ impl<'a> Record<'a> {
 
         (a == self.policy.c) ^ (b == self.policy.c)
     }
-}
-
-fn main() {
-    let input = read_file();
-    let (_, records) = parse_records(&input).unwrap();
-    let count = records
-        .clone()
-        .into_iter()
-        .filter(Record::is_valid_1)
-        .count();
-    println!("valid passwords: {}", count);
-
-    let count = records.into_iter().filter(Record::is_valid_2).count();
-    println!("valid passwords: {}", count);
 }

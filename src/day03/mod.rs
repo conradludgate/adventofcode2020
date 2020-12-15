@@ -1,3 +1,5 @@
+use crate::Challenge;
+
 use nom::{
     branch::alt,
     character::complete::{char, line_ending},
@@ -5,6 +7,32 @@ use nom::{
     multi::separated_list1,
     IResult,
 };
+
+pub struct Day03 {
+    grid: Grid,
+}
+
+impl Challenge for Day03 {
+    fn name() -> &'static str {
+        "day03"
+    }
+    fn new(input: String) -> Self{
+        Day03 {
+            grid: parse_rows(&input).unwrap().1,
+        }
+    }
+    fn part_one(&self) -> usize {
+        self.grid.iter((3, 1)).filter(|&spot| spot == Spot::Tree).count()
+    }
+    fn part_two(&self) -> usize {
+        let trees11 = self.grid.iter((1, 1)).filter(|&spot| spot == Spot::Tree).count();
+        let trees31 = self.grid.iter((3, 1)).filter(|&spot| spot == Spot::Tree).count();
+        let trees51 = self.grid.iter((5, 1)).filter(|&spot| spot == Spot::Tree).count();
+        let trees71 = self.grid.iter((7, 1)).filter(|&spot| spot == Spot::Tree).count();
+        let trees12 = self.grid.iter((1, 2)).filter(|&spot| spot == Spot::Tree).count();
+        trees11 * trees31 * trees51 * trees71 * trees12
+    }
+}
 
 #[derive(Debug, Copy, Clone, PartialEq)]
 enum Spot {
@@ -34,20 +62,6 @@ fn parse_row(input: &str) -> IResult<&str, Row> {
 fn parse_rows(input: &str) -> IResult<&str, Grid> {
     let (input, rows) = separated_list1(line_ending, parse_row)(input)?;
     Ok((input, Grid(rows)))
-}
-
-fn parse_file() -> Grid {
-    use std::fs::File;
-    use std::io::prelude::*;
-
-    let mut file = File::open("input.txt").expect("could not open file");
-    let mut input = String::new();
-    file.read_to_string(&mut input)
-        .expect("could not read file");
-
-    let (_, rows) = parse_rows(&input).expect("could not parse file");
-
-    rows
 }
 
 impl Grid {
@@ -142,20 +156,3 @@ fn test_count() {
     assert_eq!(trees12, 2);
 }
 
-fn main() {
-    let grid = parse_file();
-    let trees11 = grid.iter((1, 1)).filter(|&spot| spot == Spot::Tree).count();
-    let trees31 = grid.iter((3, 1)).filter(|&spot| spot == Spot::Tree).count();
-    let trees51 = grid.iter((5, 1)).filter(|&spot| spot == Spot::Tree).count();
-    let trees71 = grid.iter((7, 1)).filter(|&spot| spot == Spot::Tree).count();
-    let trees12 = grid.iter((1, 2)).filter(|&spot| spot == Spot::Tree).count();
-    println!("Trees Found (1, 1): {}", trees11);
-    println!("Trees Found (3, 1): {}", trees31);
-    println!("Trees Found (5, 1): {}", trees51);
-    println!("Trees Found (7, 1): {}", trees71);
-    println!("Trees Found (1, 2): {}", trees12);
-    println!(
-        "Trees Found Product: {}",
-        trees11 * trees31 * trees51 * trees71 * trees12
-    );
-}
